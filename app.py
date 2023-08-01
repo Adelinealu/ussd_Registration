@@ -3,7 +3,7 @@ import mysql.connector
 
 app = Flask(__name__)
 
-# Replace the connection parameters with your database info
+# database info
 db_connection = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -11,69 +11,77 @@ db_connection = mysql.connector.connect(
     database="ussd_database"
 )
 
-def save_registration_data(phonenumber, fullname, language, electoral_ward, national_id):
+# Function to save registration data to the database
+def save_registration_data(session_id, phonenumber, fullname, language, electoral_ward, national_id):
     cursor = db_connection.cursor()
-    query = "INSERT INTO registrations (phonenumber, fullname, language, electoral_ward, national_id) VALUES (%s, %s, %s, %s, %s)"
-    values = (phonenumber, fullname, language, electoral_ward, national_id)
+    query = "INSERT INTO registrations (session_id, phonenumber, fullname, language, electoral_ward, national_id) VALUES (%s, %s, %s, %s, %s, %s)"
+    values = (session_id, phonenumber, fullname, language, electoral_ward, national_id)
     cursor.execute(query, values)
     db_connection.commit()
 
 @app.route("/", methods=["POST"])
 def ussd_handler():
     text = request.form.get('USSD_STRING', '')
-    phonenumber = request.form.get('MSISDN', '')
-
-    level = text.split("*")
+    phonenumber = request.form.get('Phone_Number', '')
+    session_id = request.form.get('Session_ID', '')
+    state = request.form.get('State', 'language_selection')
 
     # Check if user is at the initial screen
     if text == "":
-        response = "CON Welcome to the registration portal.\nPlease choose your language:\n1. English\n2. Kinyarwanda"
+        response = "Welcome to the registration portal.\nPlease choose your language:\n1. English\n2. Kinyarwanda"
+        state = 'language_selection'
 
     # Check user's progress and handle the response accordingly
-    elif len(level) == 1:
-        if level[0] == "1":
-            response = "CON You selected English.\nPlease enter your full name"
-        elif level[0] == "2":
-            response = "CON Wahisemo Ikinyarwanda.\nAndika amazina yawe yose"
+    if state == 'language_selection':
+        if text == "1":
+            response = "You selected English.\nPlease enter your full name"
+            state = 'fullname_input'
+        elif text == "2":
+            response = "Wahisemo Ikinyarwanda.\nAndika amazina yawe yose"
+            state = 'fullname_input'
         else:
-            response = "END Invalid input. Please try again."
+            response = "Invalid input. Please try again."
 
-    elif len(level) == 2:
-        language_selection = level[0]
-        fullname = level[1]
+    elif state == 'fullname_input':
+        fullname = text
+        response = "Hi {}, enter your District name".format(fullname)
+        state = 'district_input'
+
+    elif state == 'district_input':
+        district_name = text
+        response = "Please enter your national ID number"
+        state = 'national_id_input'
+
+    elif state == 'national_id_input':
+        language_selection = '1' if state == 'language_selection' else '2'
+        fullname = text
+        district_name = text
+        national_id = text
+        save_registration_data(session_id, phonenumber, fullname,
+                               language_selection, district_name, national_id)
         if language_selection == "1":
-            response = "CON Hi {}, enter your ward name".format(fullname)
+            response = "Thank you for registering.\nWe will keep you updated"
         elif language_selection == "2":
-            response = "CON {}, Andika akarere utuyemo".format(fullname)
+            response = "Murakoze kwiyandikisha.\nTuzabamenyesha."
+
+        # Add a binary (0/1) request to know if registration is continuous or ending
+        # You can handle this request as per your specific requirements.
+        new_request = request.form.get('Request', '')
+        if new_request == "0":
+            # Handle continuous registration logic here
+            pass
+        elif new_request == "1":
+            # Handle ending registration logic here
+            pass
         else:
-            response = "END Invalid language selection. Please try again."
-
-    elif len(level) == 3:
-        language_selection = level[0]
-        fullname = level[1]
-        ward_name = level[2]
-        if language_selection == "1":
-            response = "CON Please enter your national ID number"
-        elif language_selection == "2":
-            response = "CON Andika numero y'indangamuntu"
-        else:
-            response = "END Invalid input. Please try again."
-
-    elif len(level) == 4:
-        language_selection = level[0]
-        fullname = level[1]
-        ward_name = level[2]
-        national_id = level[3]
-        save_registration_data(phonenumber, fullname, language_selection, ward_name, national_id)
-        if language_selection == "1":
-            response = "END Thank you for registering.\nWe will keep you updated"
-        elif language_selection == "2":
-            response = "END Murakoze kwiyandikisha.\nTuzabamenyesha."
+            # Handle invalid request type here
+            pass
 
     else:
-        response = "END Invalid input. Please try again."
+        response = "Invalid input. Please try again."
 
     return response
+
 
 if __name__ == "__main__":
     app.run(host="localhost", port=9000)
