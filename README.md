@@ -4,8 +4,8 @@ This is a simple USSD registration portal built using Flask, which allows users 
 
 Requirements:
 
-Python 3
-Flask
+Python 3, 
+Flask, 
 MySQL database (I used XAMPP with PHPMyAdmin)
 
 Usage:
