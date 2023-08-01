@@ -2,12 +2,14 @@
 
 This is a simple USSD registration portal built using Flask, which allows users to register by providing their information via USSD prompts. The application stores the registration data in a MySQL database.
 
-Requirements
-Python 3.x
+Requirements:
+
+Python 3
 Flask
 MySQL database (I used XAMPP with PHPMyAdmin)
 
-Usage
+Usage:
+
 The application exposes a simple USSD registration portal that can be accessed via POST requests to the root URL.
 
 To initiate a new USSD session, send a POST request with the following parameters in the request body:
