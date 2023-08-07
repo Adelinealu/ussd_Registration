@@ -12,12 +12,16 @@ db_connection = mysql.connector.connect(
 )
 
 # Function to save registration data to the database
+
+
 def save_registration_data(session_id, phonenumber, fullname, language, electoral_ward, national_id):
     cursor = db_connection.cursor()
     query = "INSERT INTO registrations (session_id, phonenumber, fullname, language, electoral_ward, national_id) VALUES (%s, %s, %s, %s, %s, %s)"
-    values = (session_id, phonenumber, fullname, language, electoral_ward, national_id)
+    values = (session_id, phonenumber, fullname,
+              language, electoral_ward, national_id)
     cursor.execute(query, values)
     db_connection.commit()
+
 
 @app.route("/", methods=["POST"])
 def ussd_handler():
@@ -49,7 +53,8 @@ def ussd_handler():
         national_id = text
 
         # Assuming the registration process is complete, save data to the database
-        save_registration_data(session_id, phonenumber, fullname, language_selection, district_name, national_id)
+        save_registration_data(session_id, phonenumber, fullname,
+                               language_selection, district_name, national_id)
 
         response = (
             "END Thank you for registering.\nWe will keep you updated"
